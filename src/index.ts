@@ -142,14 +142,35 @@ export function subscribe(cb: TokenListener): () => void {
 
 function notifyListeners(token: string | null) {
   const i = ensureInternal();
-  for (const cb of i.listeners) cb(token);
+  i.listeners.forEach((cb) => cb(token));
 }
 
-export async function authFetch(input: RequestInfo, init?: RequestInit) {
+export async function authFetch(input: unknown, init?: any): Promise<any> {
+  const g: any = (typeof globalThis !== 'undefined' ? globalThis : {}) as any;
   const token = await getToken();
-  const headers = new Headers(init?.headers || {});
-  if (token) headers.set('Authorization', `Bearer ${token}`);
-  return fetch(input, { ...init, headers });
+
+  let headers = init?.headers ?? undefined;
+
+  if (token) {
+    if (g.Headers && (headers instanceof g.Headers || typeof headers === 'undefined')) {
+      const h = new g.Headers(headers);
+      h.set('Authorization', `Bearer ${token}`);
+      headers = h;
+    } else if (headers && typeof headers === 'object') {
+      headers = { ...(headers as any), Authorization: `Bearer ${token}` };
+    } else {
+      headers = { Authorization: `Bearer ${token}` };
+    }
+  }
+
+  const fetchFn =
+    typeof g.fetch === 'function'
+      ? g.fetch
+      : (() => {
+          throw new Error('fetch is not available in this environment');
+        });
+
+  return fetchFn(input as any, { ...(init || {}), headers });
 }
 
 export { attachAxios } from './axios';
