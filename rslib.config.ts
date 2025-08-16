@@ -12,4 +12,12 @@ export default defineConfig({
       syntax: ['node 18'],
     },
   ],
+  source: {
+    tsconfigPath: './tsconfig.json',
+  },
+  output: {
+    minify: true,
+    sourceMap: true,
+    externals: ['zustand', 'idb-keyval', 'axios'],
+  },
 });
