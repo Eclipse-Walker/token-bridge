@@ -29,7 +29,6 @@ function ensureInternal(opts?: BridgeOptions): Internal {
       listeners: new Set<TokenListener>(),
     } as Internal;
   } else if (opts) {
-    // อนุญาต override บาง field เฉพาะรอบ init แรกๆ
     const i = g.__mf_token_bridge_internal__ as Internal;
     if (!i.initialized) {
       i.options.channelName = opts.channelName ?? i.options.channelName;
@@ -42,12 +41,10 @@ function ensureInternal(opts?: BridgeOptions): Internal {
   return g.__mf_token_bridge_internal__ as Internal;
 }
 
-/** เรียกครั้งเดียวใน host/remote เพื่อเปิดช่อง sync */
 export async function initTokenBridge(options?: BridgeOptions) {
   const i = ensureInternal(options);
   if (i.initialized) return;
 
-  // bootstrap จาก IndexedDB (optional)
   if (i.options.persist) {
     const rec = await loadToken(i.options.persistKey, i.options.persistTTL);
     if (rec?.token) {
@@ -55,7 +52,6 @@ export async function initTokenBridge(options?: BridgeOptions) {
     }
   }
 
-  // listen message
   i.unlisten = i.channel.listen((msg: SyncMessage) => {
     const st = useStore.getState();
     switch (msg.type) {
@@ -92,13 +88,11 @@ export async function initTokenBridge(options?: BridgeOptions) {
     }
   });
 
-  // รีเควสต์ซิงค์จาก authority (ถ้ามี)
   i.channel.postMessage({ type: 'token:who-has' });
 
   i.initialized = true;
 }
 
-/** ใช้ใน host เท่านั้น: อัปเดต token (หลัง login/refresh) */
 export function setToken(token: string, expiresAt?: number) {
   const i = ensureInternal();
   const rec: TokenRecord = { token, expiresAt };
@@ -107,7 +101,6 @@ export function setToken(token: string, expiresAt?: number) {
   i.channel.postMessage({ type: 'token:update', payload: rec });
 }
 
-/** ล้าง token */
 export function clearToken() {
   const i = ensureInternal();
   useStore.getState().clear();
@@ -115,7 +108,6 @@ export function clearToken() {
   i.channel.postMessage({ type: 'token:clear' });
 }
 
-/** อ่าน token ปัจจุบัน (null ถ้ายังไม่มีหรือหมดอายุ) */
 export async function getToken(): Promise<string | null> {
   const { token, isExpired } = useStore.getState();
   if (!token) return null;
@@ -123,7 +115,6 @@ export async function getToken(): Promise<string | null> {
   return token;
 }
 
-/** รอ token ให้พร้อม (เช่นตอนรีโหลด) */
 export function awaitToken(timeoutMs = 3000): Promise<string | null> {
   return new Promise((resolve) => {
     const immediate = useStore.getState().token;
@@ -143,7 +134,6 @@ export function awaitToken(timeoutMs = 3000): Promise<string | null> {
   });
 }
 
-/** subscribe เมื่อ token เปลี่ยน */
 export function subscribe(cb: TokenListener): () => void {
   const i = ensureInternal();
   i.listeners.add(cb);
@@ -155,7 +145,6 @@ function notifyListeners(token: string | null) {
   for (const cb of i.listeners) cb(token);
 }
 
-/** fetch helper ใส่ Authorization ให้อัตโนมัติ */
 export async function authFetch(input: RequestInfo, init?: RequestInit) {
   const token = await getToken();
   const headers = new Headers(init?.headers || {});

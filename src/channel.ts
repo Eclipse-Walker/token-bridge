@@ -12,7 +12,6 @@ export class TokenChannel {
     if (typeof BroadcastChannel !== 'undefined') {
       this.bc = new BroadcastChannel(name);
     } else {
-      // Fallback ผ่าน storage event (last resort)
       window.addEventListener('storage', (e) => {
         if (e.key === this.name && e.newValue) {
           try {
@@ -30,7 +29,6 @@ export class TokenChannel {
     } else {
       try {
         localStorage.setItem(this.name, JSON.stringify(msg));
-        // trigger storage event
         localStorage.removeItem(this.name);
       } catch {}
     }

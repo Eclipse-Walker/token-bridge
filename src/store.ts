@@ -22,7 +22,6 @@ function createStore() {
   }));
 }
 
-// global singleton (เผื่อมีหลุด share config)
 const g = globalThis as any;
 if (!g.__mf_token_bridge_store__) {
   g.__mf_token_bridge_store__ = createStore();
